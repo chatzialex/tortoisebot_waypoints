@@ -1,4 +1,4 @@
-from course_web_dev_ros.msg import WaypointActionAction, WaypointActionGoal, WaypointActionResult
+from tortoisebot_waypoints.msg import WaypointActionAction, WaypointActionGoal, WaypointActionResult
 import rospy
 import actionlib
 

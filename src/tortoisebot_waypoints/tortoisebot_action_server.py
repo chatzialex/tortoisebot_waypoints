@@ -3,7 +3,7 @@ import rospy
 import time
 import actionlib
 
-from course_web_dev_ros.msg import WaypointActionFeedback, WaypointActionResult, WaypointActionAction
+from tortoisebot_waypoints.msg import WaypointActionFeedback, WaypointActionResult, WaypointActionAction
 from geometry_msgs.msg import Twist
 from std_msgs.msg import Empty
 from geometry_msgs.msg import Twist, Point
