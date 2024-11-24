@@ -29,6 +29,7 @@ class WaypointActionClass(object):
     _state = 'idle'
     # goal
     _des_pos = Point()
+    _des_yaw = 0.0
     # parameters
     _yaw_precision = math.pi / 90 # +/- 2 degree allowed
     _dist_precision = 0.05
@@ -67,14 +68,18 @@ class WaypointActionClass(object):
 
         # define desired position and errors
         self._des_pos = goal.position
+        self._des_yaw = goal.yaw
         desired_yaw = math.atan2(self._des_pos.y - self._position.y, self._des_pos.x - self._position.x)
         err_pos = math.sqrt(pow(self._des_pos.y - self._position.y, 2) + pow(self._des_pos.x - self._position.x, 2))
         err_yaw = desired_yaw - self._yaw
 
         # perform task
-        while err_pos > self._dist_precision and success:
+        while (err_pos > self._dist_precision or err_yaw > self._yaw_precision) and success:
             # update vars
-            desired_yaw = math.atan2(self._des_pos.y - self._position.y, self._des_pos.x - self._position.x)
+            if err_pos > self._dist_precision:
+                desired_yaw = math.atan2(self._des_pos.y - self._position.y, self._des_pos.x - self._position.x)
+            else:
+                desired_yaw = self._des_yaw
             err_yaw = desired_yaw - self._yaw
             err_pos = math.sqrt(pow(self._des_pos.y - self._position.y, 2) + pow(self._des_pos.x - self._position.x, 2))
             rospy.loginfo("Current Yaw: %s" % str(self._yaw))
