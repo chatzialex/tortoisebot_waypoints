@@ -2,7 +2,7 @@
 
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Quaternion, Point
-from course_web_dev_ros.msg import WaypointActionGoal
+from tortoisebot_waypoints.msg import WaypointActionGoal
 from tf.transformations import euler_from_quaternion
 from tortoisebot_action_client import TortoisebotActionClient
 import rospy
