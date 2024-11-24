@@ -5,7 +5,7 @@ import actionlib
 class TortoisebotActionClient():
     action_server_name = 'tortoisebot_as'
     timeout_server_sec = 2.0
-    timeout_result_sec = 10.0
+    timeout_result_sec = 20.0
 
     def __init__(self):
         self.action_client = actionlib.SimpleActionClient(self.action_server_name, WaypointActionAction)

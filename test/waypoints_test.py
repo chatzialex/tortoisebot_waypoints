@@ -22,8 +22,9 @@ def compute_planar_distance(point1 : Point, point2: Point) -> float:
     return math.sqrt((point1.x - point2.x)**2 + (point1.y - point2.y)**2)
 
 class TestWaypointsActionServer(unittest.TestCase):
-    action_goal = WaypointActionGoal(position=Point(x=-0.6, y=-0.5))
-    dist_precision = 0.05
+    _action_goal = WaypointActionGoal(position=Point(x=-0.6, y=-0.5), yaw=0.0)
+    _dist_precision = 0.05
+    _yaw_precision = math.pi / 90 # +/- 2 degree allowed
     
     def setUp(self):
         rospy.init_node('waypoints_test')
@@ -31,21 +32,25 @@ class TestWaypointsActionServer(unittest.TestCase):
         self.yaw = 0
         self.position = Point()
         self.action_client_wrapper = TortoisebotActionClient()
-        self.action_client_wrapper.send_goal(self.action_goal)
+        self.action_client_wrapper.send_goal(self._action_goal)
 
     def odom_callback(self, msg):
         self.yaw = compute_yaw(msg.pose.pose.orientation)
         self.position = msg.pose.pose.position
 
     def test_end_position(self):
-        distance_from_goal = compute_planar_distance(self.position, self.action_goal.position)
+        distance_from_goal = compute_planar_distance(self.position, self._action_goal.position)
         self.assertTrue(
-            distance_from_goal <= self.dist_precision, 
-            f"Robot too far from goal ({distance_from_goal} > {self.dist_precision})"
+            distance_from_goal <= self._dist_precision,
+            f"Robot too far from goal ({distance_from_goal} > {self._dist_precision})"
         )
 
     def test_end_orientation(self):
-        self.assertTrue(True, "")
+        error_yaw = abs(self.yaw - self._action_goal.yaw)
+        self.assertTrue(
+            error_yaw <= self._yaw_precision,
+            f"Robot orientation too far from goal ({error_yaw} > {self._yaw_precision})"
+        )
 
 
 if __name__ == '__main__':
