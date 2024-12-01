@@ -38,14 +38,19 @@ add_executable(tortoisebot_action_server_standalone src/tortoisebot_action_serve
 target_link_libraries(tortoisebot_action_server_standalone tortoisebot_action_server_lib)
 
 if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
-  # the following line skips the linter which checks for copyrights
-  # uncomment the line when a copyright and license is not present in all source files
-  #set(ament_cmake_copyright_FOUND TRUE)
-  # the following line skips cpplint (only works in a git repo)
-  # uncomment the line when this package is not in a git repo
-  #set(ament_cmake_cpplint_FOUND TRUE)
-  ament_lint_auto_find_test_dependencies()
+  find_package(ament_cmake_gtest REQUIRED)
+
+  ament_add_gtest(${PROJECT_NAME}_test 
+  	test/main.cpp
+	test/tortoisebot_action_client.hpp
+	test/tortoisebot_action_client.cpp
+	test/tortoisebot_action_server_test.cpp)
+  target_link_libraries(${PROJECT_NAME}_test tortoisebot_action_server_lib)
+
+  install(
+    TARGETS ${PROJECT_NAME}_test
+    DESTINATION lib/${PROJECT_NAME}
+  )
 endif()
 
 install(TARGETS
