@@ -15,6 +15,8 @@
 #include <cmath>
 #include <future>
 #include <memory>
+#include <thread>
+#include <iostream>
 
 using namespace TortoisebotWaypoints;
 using Odometry = nav_msgs::msg::Odometry;
@@ -23,15 +25,6 @@ using Point = geometry_msgs::msg::Point;
 using WaypointAction = tortoisebot_waypoints::action::WaypointAction;
 using WaypointActionResultFuture = std::shared_future<
     TortoisebotActionClient::GoalHandleWaypointAction::SharedPtr>;
-
-// rclcpp launcher (launch once per process)
-
-class RclCppFixture {
-public:
-  RclCppFixture() { rclcpp::init(0, nullptr); }
-  ~RclCppFixture() { rclcpp::shutdown(); }
-};
-RclCppFixture g_rclcppfixture;
 
 // Helper functions
 
@@ -52,8 +45,10 @@ class TortoisebotActionServerTests : public ::testing::Test {
 public:
 protected:
   static void SetUpTestSuite();
+  static void TearDownTestSuite();
 
   static void odom_callback(const std::shared_ptr<const Odometry> msg);
+  static WaypointAction::Result::SharedPtr send_goal(const WaypointAction::Goal& goal);
 
   // Tolerances
   static constexpr double kPi{3.1416};
@@ -73,9 +68,7 @@ protected:
   static constexpr char kOdomTopicName[]{"/odom"};
 
   // ROS interfaces
-  static std::shared_ptr<TortoisebotActionClient> action_client_;
   static rclcpp::Subscription<Odometry>::SharedPtr odom_sub_;
-  static std::shared_ptr<rclcpp::Node> action_server_;
   static std::shared_ptr<rclcpp::Node> node_;
 }; // class TortoisebotActionServerTests
 
@@ -85,10 +78,6 @@ double TortoisebotActionServerTests::yaw_ = {};
 WaypointAction::Result::SharedPtr TortoisebotActionServerTests::action_result_ = nullptr;
 rclcpp::Subscription<Odometry>::SharedPtr
     TortoisebotActionServerTests::odom_sub_ = nullptr;
-std::shared_ptr<TortoisebotActionClient>
-    TortoisebotActionServerTests::action_client_ = nullptr;
-std::shared_ptr<rclcpp::Node> TortoisebotActionServerTests::action_server_ =
-    nullptr;
 std::shared_ptr<rclcpp::Node> TortoisebotActionServerTests::node_ = nullptr;
 WaypointAction::Goal TortoisebotActionServerTests::goal = [] {
   WaypointAction::Goal g;
@@ -98,22 +87,43 @@ WaypointAction::Goal TortoisebotActionServerTests::goal = [] {
 }();
 
 void TortoisebotActionServerTests::SetUpTestSuite() {
-  action_server_ = std::make_shared<TortoisebotActionServer>();
+  rclcpp::init(0, nullptr);
+
+  action_result_=send_goal(goal);
 
   node_ = rclcpp::Node::make_shared(kNodeName);
   node_->create_subscription<Odometry>(
       kOdomTopicName, 1,
       std::bind(&TortoisebotActionServerTests::odom_callback,
                 std::placeholders::_1));
-
-  action_client_ = std::make_shared<TortoisebotActionClient>();
-  action_result_ = action_client_->send_goal(goal);
 }
 
 void TortoisebotActionServerTests::odom_callback(
     const std::shared_ptr<const Odometry> msg) {
   yaw_ = compYaw(msg->pose.pose.orientation);
   position_ = msg->pose.pose.position;
+}
+
+WaypointAction::Result::SharedPtr
+TortoisebotActionServerTests::send_goal(const WaypointAction::Goal& goal) {
+  auto action_server{std::make_shared<TortoisebotActionServer>()};
+  auto executor{std::make_shared<rclcpp::executors::SingleThreadedExecutor>()};
+  executor->add_node(action_server);
+  auto spin_thread{std::thread([&]() { executor->spin(); })};
+
+  auto action_client{std::make_shared<TortoisebotActionClient>()};
+  auto action_result{action_client->send_goal(goal)};
+
+  executor->cancel();
+  if (spin_thread.joinable()) {
+    spin_thread.join();
+  }
+
+  return action_result;
+}
+
+void TortoisebotActionServerTests::TearDownTestSuite() {
+  rclcpp::shutdown();
 }
 
 TEST_F(TortoisebotActionServerTests, PositionErrorTest) {}
