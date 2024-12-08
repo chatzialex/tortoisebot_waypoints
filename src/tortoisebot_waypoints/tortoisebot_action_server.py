@@ -110,6 +110,7 @@ class WaypointActionClass(object):
 
             # send feedback
             self._feedback.position = self._position
+            self._feedback.yaw = self._yaw
             self._feedback.state = self._state
             self._as.publish_feedback(self._feedback)
 
