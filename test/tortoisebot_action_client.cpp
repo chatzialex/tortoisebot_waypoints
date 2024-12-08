@@ -72,7 +72,7 @@ void TortoisebotActionClient::feedback_callback(
 
   std::stringstream ss;
   ss << "Feedback received (x=" << feedback->position.x << ", "
-     << "y=" << feedback->position.y << ", "
+     << "y=" << feedback->position.y << ", " << "yaw=" << feedback->yaw
      << "state=" << feedback->state << ").";
 
   RCLCPP_INFO(this->get_logger(), ss.str().c_str());

@@ -154,6 +154,7 @@ void TortoisebotActionServer::execute(
     }
 
     feedback->position = position_;
+    feedback->yaw = yaw_;
     goal_handle->publish_feedback(feedback);
 
     rate_.sleep();
