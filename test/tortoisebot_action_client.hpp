@@ -12,6 +12,7 @@
 #include <functional>
 #include <future>
 #include <memory>
+#include <atomic>
 
 namespace TortoisebotWaypoints {
 
@@ -23,8 +24,7 @@ public:
 
   TortoisebotActionClient();
 
-  std::shared_future<GoalHandleWaypointAction::SharedPtr>
-  send_goal(const WaypointAction::Goal &goal);
+  WaypointAction::Result::SharedPtr send_goal(const WaypointAction::Goal &goal);
 
 private:
   void goal_response_callback(
@@ -40,6 +40,8 @@ private:
   static constexpr char kActionName[]{"tortoisebot_as"};
 
   rclcpp_action::Client<WaypointAction>::SharedPtr action_client_;
+  std::atomic<bool> is_goal_done_{false};
+  WaypointAction::Result::SharedPtr result_{nullptr};
 }; // class TortoisebotActionClient
 
 } // namespace TortoisebotWaypoints

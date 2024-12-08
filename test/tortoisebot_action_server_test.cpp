@@ -66,7 +66,7 @@ protected:
   // State
   static Point position_;
   static double yaw_;
-  static WaypointActionResultFuture action_result_;
+  static WaypointAction::Result::SharedPtr action_result_;
 
   // Names
   static constexpr char kNodeName[]{"TortoisebotActionServerTestsNode"};
@@ -82,7 +82,7 @@ protected:
 // initialization of static members
 Point TortoisebotActionServerTests::position_ = Point();
 double TortoisebotActionServerTests::yaw_ = {};
-WaypointActionResultFuture TortoisebotActionServerTests::action_result_ = {};
+WaypointAction::Result::SharedPtr TortoisebotActionServerTests::action_result_ = nullptr;
 rclcpp::Subscription<Odometry>::SharedPtr
     TortoisebotActionServerTests::odom_sub_ = nullptr;
 std::shared_ptr<TortoisebotActionClient>
