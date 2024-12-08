@@ -12,6 +12,7 @@
 
 #include <memory>
 #include <mutex>
+#include <thread>
 
 namespace TortoisebotWaypoints {
 
@@ -24,6 +25,7 @@ public:
   using Odometry = nav_msgs::msg::Odometry;
 
   TortoisebotActionServer();
+  ~TortoisebotActionServer();
 
 private:
   // Settings
@@ -56,6 +58,9 @@ private:
 
   void execute(const std::shared_ptr<GoalHandleWaypointAction> goal_handle);
 
+  // Helper
+  void cleanup_goal_threads();
+
   rclcpp::Publisher<Twist>::SharedPtr cmd_vel_pub_;
   rclcpp::Subscription<Odometry>::SharedPtr odom_sub_;
   rclcpp::Rate rate_{loop_rate_};
@@ -66,6 +71,7 @@ private:
   double yaw_{};
   mutable std::mutex state_mutex_{};
   std::shared_ptr<GoalHandleWaypointAction> current_goal_handle_{};
+  std::thread goal_thread_;
 };
 
 } // namespace TortoisebotWaypoints

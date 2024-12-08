@@ -44,6 +44,10 @@ TortoisebotActionServer::TortoisebotActionServer()
   RCLCPP_INFO(this->get_logger(), "Started %s action server.", kActionName);
 }
 
+TortoisebotActionServer::~TortoisebotActionServer() {
+  cleanup_goal_threads();
+}
+
 void TortoisebotActionServer::odom_callback(
     const std::shared_ptr<const Odometry> msg) {
   tf2::Quaternion q{msg->pose.pose.orientation.x, msg->pose.pose.orientation.y,
@@ -82,10 +86,10 @@ void TortoisebotActionServer::handle_accepted(
 
   current_goal_handle_ = goal_handle;
 
-  std::thread{
+  cleanup_goal_threads();
+  goal_thread_ = std::thread{
       std::bind(&TortoisebotActionServer::execute, this, std::placeholders::_1),
-      goal_handle}
-      .detach();
+      goal_handle};
 }
 
 void TortoisebotActionServer::execute(
@@ -158,4 +162,10 @@ void TortoisebotActionServer::execute(
   // Stop robot
   Twist stop_msg{};
   cmd_vel_pub_->publish(stop_msg);
+}
+
+void TortoisebotActionServer::cleanup_goal_threads() {
+  if (goal_thread_.joinable()) {
+    goal_thread_.join();
+  }
 }
