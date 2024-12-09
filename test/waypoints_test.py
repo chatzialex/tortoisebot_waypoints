@@ -28,6 +28,7 @@ class TestWaypointsActionServer(unittest.TestCase):
     
     def setUp(self):
         rospy.init_node('waypoints_test')
+        rospy.wait_for_message('/odom', Odometry)
         self.odom_sub = rospy.Subscriber('/odom', Odometry, self.odom_callback)
         self.yaw = 0
         self.position = Point()
