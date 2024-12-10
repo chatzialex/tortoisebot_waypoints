@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.8)
 project(tortoisebot_waypoints)
 
+option(ENABLE_STANDALONE_GTEST "Enable standalone GTest" OFF)
+
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
@@ -13,6 +15,7 @@ find_package(nav_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(tf2 REQUIRED)
+find_package(launch_testing_ament_cmake REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "action/WaypointAction.action"
@@ -40,15 +43,31 @@ target_link_libraries(tortoisebot_action_server_standalone tortoisebot_action_se
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
 
-  ament_add_gtest(${PROJECT_NAME}_test 
-  	test/main.cpp
-	test/tortoisebot_action_client.hpp
-	test/tortoisebot_action_client.cpp
-	test/tortoisebot_action_server_test.cpp)
-  target_link_libraries(${PROJECT_NAME}_test tortoisebot_action_server_lib)
+  set(TEST_SOURCES
+    test/main.cpp
+    test/tortoisebot_action_client.hpp
+    test/tortoisebot_action_client.cpp
+    test/tortoisebot_action_server_test.cpp
+  )
+  set(TEST_DEPS
+    tortoisebot_action_server_lib
+  )
+  set(TEST_TARGET_NAME
+    ${PROJECT_NAME}_test
+  )
 
+  if(ENABLE_STANDALONE_GTEST)
+    ament_add_gtest(${TEST_TARGET_NAME} ${TEST_SOURCES})
+  else()
+    message("ADDING LAUNCH TEST!!!") # TODO: remove
+    add_executable(${TEST_TARGET_NAME} ${TEST_SOURCES})
+    target_link_libraries(${TEST_TARGET_NAME} gtest)
+    add_launch_test(test/waypoints_launch_test.py)
+  endif()
+
+  target_link_libraries(${TEST_TARGET_NAME} ${TEST_DEPS})
   install(
-    TARGETS ${PROJECT_NAME}_test
+    TARGETS ${TEST_TARGET_NAME}
     DESTINATION lib/${PROJECT_NAME}
   )
 endif()
