@@ -21,6 +21,11 @@ def compute_yaw(orientation : Quaternion) -> float:
 def compute_planar_distance(point1 : Point, point2: Point) -> float:
     return math.sqrt((point1.x - point2.x)**2 + (point1.y - point2.y)**2)
 
+def normalize_angle(angle):
+    # Normalize angle to be within [-pi, pi)
+    normalized_angle = (angle + math.pi) % (2 * math.pi) - math.pi
+    return normalized_angle
+
 class TestWaypointsActionServer(unittest.TestCase):
     _action_goal = WaypointActionGoal(position=Point(x=-0.6, y=-0.5), yaw=0.0)
     _dist_precision = 0.05
@@ -47,7 +52,7 @@ class TestWaypointsActionServer(unittest.TestCase):
         )
 
     def test_end_orientation(self):
-        error_yaw = abs(self.yaw - self._action_goal.yaw)
+        error_yaw = abs(normalize_angle(self.yaw - self._action_goal.yaw))
         self.assertTrue(
             error_yaw <= self._yaw_precision,
             f"Robot orientation too far from goal ({error_yaw} > {self._yaw_precision})"

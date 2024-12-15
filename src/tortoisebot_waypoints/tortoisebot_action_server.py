@@ -11,6 +11,11 @@ from nav_msgs.msg import Odometry
 from tf import transformations
 import math
 
+def normalize_angle(angle):
+    # Normalize angle to be within [-pi, pi)
+    normalized_angle = (angle + math.pi) % (2 * math.pi) - math.pi
+    return normalized_angle
+
 class WaypointActionClass(object):
 
     # create messages that are used to publish feedback/result
@@ -33,6 +38,10 @@ class WaypointActionClass(object):
     # parameters
     _yaw_precision = math.pi / 90 # +/- 2 degree allowed
     _dist_precision = 0.05
+    _max_angular_vel_error_yaw = 10*_yaw_precision  # [rad] 20
+    _max_speed_error_pos = _dist_precision  # [m]
+    _max_angular_vel = 0.65  # [rad/s]
+    _max_speed = 0.1  # [m/s]
 
     def __init__(self):
         # creates the action server
@@ -67,27 +76,26 @@ class WaypointActionClass(object):
         # helper variables
         success = True
 
-        # define desired position and errors
+        # define desired position
         self._des_pos = goal.position
         self._des_yaw = goal.yaw
-        desired_yaw = math.atan2(self._des_pos.y - self._position.y, self._des_pos.x - self._position.x)
-        err_pos = math.sqrt(pow(self._des_pos.y - self._position.y, 2) + pow(self._des_pos.x - self._position.x, 2))
-        err_yaw = desired_yaw - self._yaw
 
         # perform task
-        while (err_pos > self._dist_precision or err_yaw > self._yaw_precision) and success:
+        while success:
             # update vars
+            err_pos = math.sqrt(pow(self._des_pos.y - self._position.y, 2) + pow(self._des_pos.x - self._position.x, 2))
             if err_pos > self._dist_precision:
                 desired_yaw = math.atan2(self._des_pos.y - self._position.y, self._des_pos.x - self._position.x)
             else:
                 desired_yaw = self._des_yaw
-            err_yaw = desired_yaw - self._yaw
-            err_pos = math.sqrt(pow(self._des_pos.y - self._position.y, 2) + pow(self._des_pos.x - self._position.x, 2))
+            err_yaw = normalize_angle(desired_yaw - self._yaw)
             rospy.loginfo("Current Yaw: %s" % str(self._yaw))
             rospy.loginfo("Desired Yaw: %s" % str(desired_yaw))
             rospy.loginfo("Error Yaw: %s" % str(err_yaw))
             # logic goes here
-            if self._as.is_preempt_requested():
+            if err_pos <= self._dist_precision and math.fabs(err_yaw) <= self._yaw_precision:
+                break
+            elif self._as.is_preempt_requested():
                 # cancelled
                 rospy.loginfo("The goal has been cancelled/preempted")
                 self._as.set_preempted()
@@ -97,16 +105,16 @@ class WaypointActionClass(object):
                 rospy.loginfo("fix yaw")
                 self._state = 'fix yaw'
                 twist_msg = Twist()
-                twist_msg.angular.z = 0.65 if err_yaw > 0 else -0.65
+                twist_msg.angular.z = max(min(err_yaw*self._max_angular_vel/self._max_angular_vel_error_yaw, self._max_angular_vel), -self._max_angular_vel)
+                rospy.loginfo("publishing w_z: %s" % str(twist_msg.angular.z))
                 self._pub_cmd_vel.publish(twist_msg)
             else:
                 # go to point
                 rospy.loginfo("go to point")
                 self._state = 'go to point'
                 twist_msg = Twist()
-                twist_msg.linear.x = 0.6
-                twist_msg.angular.z = 0
-                # twist_msg.angular.z = 0.1 if err_yaw > 0 else -0.1
+                twist_msg.linear.x = max(min(err_pos*self._max_speed/self._max_speed_error_pos, self._max_speed), -self._max_speed)
+                twist_msg.angular.z = max(min(err_yaw*self._max_angular_vel/self._max_angular_vel_error_yaw, self._max_angular_vel), -self._max_angular_vel)
                 self._pub_cmd_vel.publish(twist_msg)
 
             # send feedback
