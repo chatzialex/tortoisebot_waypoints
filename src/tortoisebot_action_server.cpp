@@ -8,6 +8,7 @@
 #include "tf2/LinearMath/Matrix3x3.h"
 #include "tf2/LinearMath/Quaternion.h"
 
+#include <algorithm>
 #include <cmath>
 #include <functional>
 #include <mutex>
@@ -143,13 +144,14 @@ void TortoisebotActionServer::execute(
       // Fix yaw
       feedback->state = "fix yaw";
       Twist cmd_vel_msg{};
-      cmd_vel_msg.angular.z = (err_yaw > 0) ? 0.65 : -0.65;
+      cmd_vel_msg.angular.z = std::max(std::min(err_yaw*max_angular_vel_/max_angular_vel_error_yaw_, max_angular_vel_), -max_angular_vel_);
       cmd_vel_pub_->publish(cmd_vel_msg);
     } else {
       // Move towards point
       feedback->state = "go to point";
       Twist cmd_vel_msg{};
-      cmd_vel_msg.linear.x = 0.6;
+      cmd_vel_msg.angular.z = std::max(std::min(err_yaw*max_angular_vel_/max_angular_vel_error_yaw_, max_angular_vel_), -max_angular_vel_);
+      cmd_vel_msg.linear.x = std::max(std::min(err_pos*max_speed_/max_speed_error_pos_, max_speed_), -max_speed_);
       cmd_vel_pub_->publish(cmd_vel_msg);
     }
 
