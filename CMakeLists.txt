@@ -55,14 +55,13 @@ if(BUILD_TESTING)
   set(TEST_TARGET_NAME
     ${PROJECT_NAME}_test
   )
-
+  set(TEST_TIMEOUT 40)
   if(ENABLE_STANDALONE_GTEST)
-    ament_add_gtest(${TEST_TARGET_NAME} ${TEST_SOURCES})
+    ament_add_gtest(${TEST_TARGET_NAME} ${TEST_SOURCES} TIMEOUT ${TEST_TIMEOUT})
   else()
-    message("ADDING LAUNCH TEST!!!") # TODO: remove
     add_executable(${TEST_TARGET_NAME} ${TEST_SOURCES})
     target_link_libraries(${TEST_TARGET_NAME} gtest)
-    add_launch_test(test/waypoints_launch_test.py)
+    add_launch_test(test/waypoints_launch_test.py TIMEOUT ${TEST_TIMEOUT})
   endif()
 
   target_link_libraries(${TEST_TARGET_NAME} ${TEST_DEPS})
