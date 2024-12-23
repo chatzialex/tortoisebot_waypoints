@@ -87,6 +87,7 @@ WaypointAction::Result::SharedPtr TortoisebotActionServerTests::action_result_ =
 WaypointAction::Goal TortoisebotActionServerTests::goal = [] {
   WaypointAction::Goal g;
   g.position.x = 1.0;
+  g.position.y = 0.3;
   g.yaw = 1.57;
   return g;
 }();

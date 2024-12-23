@@ -39,9 +39,9 @@ private:
   double yaw_precision_{kPi / 90.0}; // +/- 2 degrees allowed
   double dist_precision_{0.05};
   double max_angular_vel_error_yaw_{20*yaw_precision_};  // [rad]
-  double max_speed_error_pos_{15*dist_precision_};  // [m]
+  double max_speed_error_pos_{5*dist_precision_};  // [m]
   double max_angular_vel_{0.65};  // [rad/s]
-  double max_speed_{0.6};  // [m/s]
+  double max_speed_{0.3};  // [m/s]
   double loop_rate_{130};  // [Hz]
 
   // Callbacks
