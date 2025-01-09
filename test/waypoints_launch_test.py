@@ -4,8 +4,10 @@ from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription
 from ament_index_python.packages import get_package_share_directory, get_package_prefix
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-import os
 import unittest
+import os
+import signal
+from subprocess import check_output, CalledProcessError
 
 
 def generate_test_description():
@@ -51,3 +53,33 @@ class TestGTestWaitForCompletion(unittest.TestCase):
 class TestGTestProcessPostShutdown(unittest.TestCase):
     def test_gtest_pass(self, proc_info, gtest_action):
         launch_testing.asserts.assertExitCodes(proc_info, process=gtest_action)
+
+@launch_testing.post_shutdown_test()
+class TestShutdown(unittest.TestCase):
+    def test_kill_gazebo(self):
+        processes_to_kill = ["gzserver", "gzclient"]
+        print(f"!!!!processes_to_kill={processes_to_kill}")
+        for process_name in processes_to_kill:
+            try:
+                pids = check_output(["pidof", "-z", process_name])
+                pids = pids.decode('utf-8').strip().split('\0')
+
+                for pid in pids:
+                    pid = int(pid)
+                    os.kill(pid, signal.SIGTERM)
+
+                    try:
+                        os.waitpid(pid, 0)
+                    except ChildProcessError:
+                        pass
+
+                    else:
+                        try:
+                            os.kill(pid, signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
+
+            except CalledProcessError:
+                pass
+            except Exception:
+                pass
