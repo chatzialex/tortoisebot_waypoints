@@ -48,6 +48,8 @@ if(BUILD_TESTING)
     test/tortoisebot_action_client.hpp
     test/tortoisebot_action_client.cpp
     test/tortoisebot_action_server_test.cpp
+	test/odom_listener.hpp
+	test/odom_listener.cpp
   )
   set(TEST_DEPS
     tortoisebot_action_server_lib

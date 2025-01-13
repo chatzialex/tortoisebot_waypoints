@@ -5,15 +5,17 @@
 #include <future>
 #include <memory>
 #include <sstream>
+#include <string>
 
 using namespace TortoisebotWaypoints;
 using GoalHandleSharedPtr =
     TortoisebotActionClient::GoalHandleWaypointAction::SharedPtr;
 
-TortoisebotActionClient::TortoisebotActionClient()
-    : Node{kNodeName}, action_client_{
-                           rclcpp_action::create_client<WaypointAction>(
-                               this, kActionName)} {
+TortoisebotActionClient::TortoisebotActionClient(
+    const std::string &node_name, const rclcpp::NodeOptions &options)
+    : Node{node_name, options},
+      action_client_{
+          rclcpp_action::create_client<WaypointAction>(this, kActionName)} {
   RCLCPP_INFO(this->get_logger(), "Started %s action client.", kActionName);
 }
 
@@ -51,7 +53,7 @@ TortoisebotActionClient::send_goal(const WaypointAction::Goal &goal) {
   while (!is_goal_done_.load()) {
     rclcpp::spin_some(this->get_node_base_interface());
   }
-  
+
   return result_;
 }
 
@@ -72,8 +74,8 @@ void TortoisebotActionClient::feedback_callback(
 
   std::stringstream ss;
   ss << "Feedback received (x=" << feedback->position.x << ", "
-     << "y=" << feedback->position.y << ", " << "yaw=" << feedback->yaw
-     << "state=" << feedback->state << ").";
+     << "y=" << feedback->position.y << ", "
+     << "yaw=" << feedback->yaw << "state=" << feedback->state << ").";
 
   RCLCPP_INFO(this->get_logger(), ss.str().c_str());
 }
@@ -81,12 +83,13 @@ void TortoisebotActionClient::feedback_callback(
 void TortoisebotActionClient::result_callback(
     const GoalHandleWaypointAction::WrappedResult &result) {
 
-  result_=nullptr;
+  result_ = nullptr;
 
   switch (result.code) {
   case rclcpp_action::ResultCode::SUCCEEDED:
-    RCLCPP_INFO(this->get_logger(), result.result->success ? "succeeded" : "failed");
-    result_=result.result;
+    RCLCPP_INFO(this->get_logger(),
+                result.result->success ? "succeeded" : "failed");
+    result_ = result.result;
     break;
   case rclcpp_action::ResultCode::ABORTED:
     RCLCPP_ERROR(this->get_logger(), "Goal was aborted.");

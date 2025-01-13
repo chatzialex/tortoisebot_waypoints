@@ -58,7 +58,6 @@ class TestGTestProcessPostShutdown(unittest.TestCase):
 class TestShutdown(unittest.TestCase):
     def test_kill_gazebo(self):
         processes_to_kill = ["gzserver", "gzclient"]
-        print(f"!!!!processes_to_kill={processes_to_kill}")
         for process_name in processes_to_kill:
             try:
                 pids = check_output(["pidof", "-z", process_name])

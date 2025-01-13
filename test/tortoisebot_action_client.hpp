@@ -9,10 +9,11 @@
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
 
+#include <atomic>
 #include <functional>
 #include <future>
 #include <memory>
-#include <atomic>
+#include <string>
 
 namespace TortoisebotWaypoints {
 
@@ -22,7 +23,9 @@ public:
   using GoalHandleWaypointAction =
       rclcpp_action::ClientGoalHandle<WaypointAction>;
 
-  TortoisebotActionClient();
+  TortoisebotActionClient(
+      const std::string &node_name = kNodeName,
+      const rclcpp::NodeOptions &options = rclcpp::NodeOptions());
 
   WaypointAction::Result::SharedPtr send_goal(const WaypointAction::Goal &goal);
 
