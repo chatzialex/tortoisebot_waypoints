@@ -45,9 +45,7 @@ TortoisebotActionServer::TortoisebotActionServer()
   RCLCPP_INFO(this->get_logger(), "Started %s action server.", kActionName);
 }
 
-TortoisebotActionServer::~TortoisebotActionServer() {
-  cleanup_goal_threads();
-}
+TortoisebotActionServer::~TortoisebotActionServer() { cleanup_goal_threads(); }
 
 void TortoisebotActionServer::odom_callback(
     const std::shared_ptr<const Odometry> msg) {
@@ -80,14 +78,9 @@ rclcpp_action::CancelResponse TortoisebotActionServer::handle_cancel(
 
 void TortoisebotActionServer::handle_accepted(
     const std::shared_ptr<GoalHandleWaypointAction> goal_handle) {
-  if (current_goal_handle_ && current_goal_handle_->is_active()) {
-    RCLCPP_INFO(this->get_logger(), "Preempting current goal...");
-    current_goal_handle_->abort(std::make_shared<WaypointAction::Result>());
-  }
+  cleanup_goal_threads();
 
   current_goal_handle_ = goal_handle;
-
-  cleanup_goal_threads();
   goal_thread_ = std::thread{
       std::bind(&TortoisebotActionServer::execute, this, std::placeholders::_1),
       goal_handle};
@@ -144,14 +137,22 @@ void TortoisebotActionServer::execute(
       // Fix yaw
       feedback->state = "fix yaw";
       Twist cmd_vel_msg{};
-      cmd_vel_msg.angular.z = std::max(std::min(err_yaw*max_angular_vel_/max_angular_vel_error_yaw_, max_angular_vel_), -max_angular_vel_);
+      cmd_vel_msg.angular.z = std::max(
+          std::min(err_yaw * max_angular_vel_ / max_angular_vel_error_yaw_,
+                   max_angular_vel_),
+          -max_angular_vel_);
       cmd_vel_pub_->publish(cmd_vel_msg);
     } else {
       // Move towards point
       feedback->state = "go to point";
       Twist cmd_vel_msg{};
-      cmd_vel_msg.angular.z = std::max(std::min(err_yaw*max_angular_vel_/max_angular_vel_error_yaw_, max_angular_vel_), -max_angular_vel_);
-      cmd_vel_msg.linear.x = std::max(std::min(err_pos*max_speed_/max_speed_error_pos_, max_speed_), -max_speed_);
+      cmd_vel_msg.angular.z = std::max(
+          std::min(err_yaw * max_angular_vel_ / max_angular_vel_error_yaw_,
+                   max_angular_vel_),
+          -max_angular_vel_);
+      cmd_vel_msg.linear.x = std::max(
+          std::min(err_pos * max_speed_ / max_speed_error_pos_, max_speed_),
+          -max_speed_);
       cmd_vel_pub_->publish(cmd_vel_msg);
     }
 
@@ -168,6 +169,11 @@ void TortoisebotActionServer::execute(
 }
 
 void TortoisebotActionServer::cleanup_goal_threads() {
+  if (current_goal_handle_ && current_goal_handle_->is_active()) {
+    RCLCPP_INFO(this->get_logger(), "Preempting current goal...");
+    current_goal_handle_->abort(std::make_shared<WaypointAction::Result>());
+  }
+
   if (goal_thread_.joinable()) {
     goal_thread_.join();
   }
