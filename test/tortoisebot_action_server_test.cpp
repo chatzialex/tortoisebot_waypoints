@@ -99,15 +99,19 @@ void TortoisebotActionServerTests::TearDown() {
 }
 
 TEST_F(TortoisebotActionServerTests, TestAction) {
-  WaypointAction::Result::SharedPtr action_result{
-      action_client_->send_goal(goal)};
-
   std::optional<geometry_msgs::msg::Point> position_{std::nullopt};
   std::optional<double> yaw_{std::nullopt};
+
   while (!(yaw_ = odom_listener_->getYaw()) ||
          !(position_ = odom_listener_->getPosition())) {
     std::this_thread::sleep_for(std::chrono::milliseconds{100});
   }
+
+  WaypointAction::Result::SharedPtr action_result{
+      action_client_->send_goal(goal)};
+
+  yaw_ = odom_listener_->getYaw();
+  position_ = odom_listener_->getPosition();
 
   ASSERT_TRUE(action_result && action_result->success)
       << "Action failed to execute successfully.";
