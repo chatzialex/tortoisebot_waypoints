@@ -1,4 +1,5 @@
 #include "odom_listener.hpp"
+#include "rclcpp/logging.hpp"
 #include "tortoisebot_action_client.hpp"
 #include "tortoisebot_waypoints/tortoisebot_action_server.hpp"
 
@@ -12,6 +13,7 @@
 #include <chrono>
 #include <cmath>
 #include <future>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <thread>
@@ -99,12 +101,12 @@ void TortoisebotActionServerTests::TearDown() {
 }
 
 TEST_F(TortoisebotActionServerTests, TestAction) {
-  std::optional<geometry_msgs::msg::Point> position_{std::nullopt};
-  std::optional<double> yaw_{std::nullopt};
+  std::optional<geometry_msgs::msg::Point> position{std::nullopt};
+  std::optional<double> yaw{std::nullopt};
 
-  while (!(yaw_ = odom_listener_->getYaw()) ||
-         !(position_ = odom_listener_->getPosition())) {
-    std::this_thread::sleep_for(std::chrono::milliseconds{100});
+  while (!(yaw = odom_listener_->getYaw()) ||
+         !(position = odom_listener_->getPosition())) {
+    std::this_thread::sleep_for(std::chrono::milliseconds{500});
   }
 
   std::optional<WaypointActionWrappedResultFuture> result_future{
@@ -112,21 +114,45 @@ TEST_F(TortoisebotActionServerTests, TestAction) {
   ASSERT_TRUE(result_future.has_value())
       << "Action request rejected by server.";
 
-  const auto result{result_future.value().get()};
-  ASSERT_TRUE(result.result->success)
+  double error_position{}, error_yaw{},
+      error_position_best{std::numeric_limits<double>::infinity()},
+      error_yaw_best{std::numeric_limits<double>::infinity()};
+  bool error_position_improving{false}, error_yaw_improving{false};
+  while (result_future.value().wait_for(std::chrono::seconds{10}) !=
+         std::future_status::ready) {
+
+    yaw = odom_listener_->getYaw();
+    position = odom_listener_->getPosition();
+    error_position = compErrorPosition(goal.position, position.value());
+    error_yaw = std::fabs(normalize_angle(goal.yaw - yaw.value()));
+    error_position_improving =
+        error_position < error_position_best || error_position <= position_tol;
+    error_yaw_improving = error_yaw < error_yaw_best || error_yaw <= yaw_tol;
+
+    ASSERT_TRUE(error_position_improving || error_yaw_improving)
+        << "Action seems stuck for too long.";
+
+    if (error_position < error_position_best) {
+      error_position_best = error_position;
+    }
+    if (error_yaw < error_yaw_best) {
+      error_yaw_best = error_yaw;
+    }
+  }
+
+  ASSERT_TRUE(result_future.value().get().result->success)
       << "Action failed to execute successfully.";
 
-  yaw_ = odom_listener_->getYaw();
-  position_ = odom_listener_->getPosition();
+  position = odom_listener_->getPosition();
+  yaw = odom_listener_->getYaw();
 
-  const auto error_position{
-      compErrorPosition(goal.position, position_.value())};
-  EXPECT_TRUE(error_position < position_tol)
+  error_position = compErrorPosition(goal.position, position.value());
+  EXPECT_TRUE(error_position <= position_tol)
       << "Position too far from goal (" + std::to_string(error_position) + ">" +
              std::to_string(position_tol) + ".";
 
-  const auto error_yaw{std::fabs(normalize_angle(goal.yaw - yaw_.value()))};
-  EXPECT_TRUE(error_yaw < yaw_tol) << "Yaw too far from goal (" +
-                                          std::to_string(error_yaw) + ">" +
-                                          std::to_string(yaw_tol) + ".";
+  error_yaw = std::fabs(normalize_angle(goal.yaw - yaw.value()));
+  EXPECT_TRUE(error_yaw <= yaw_tol) << "Yaw too far from goal (" +
+                                           std::to_string(error_yaw) + ">" +
+                                           std::to_string(yaw_tol) + ".";
 }
