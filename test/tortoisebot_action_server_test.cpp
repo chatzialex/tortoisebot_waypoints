@@ -19,8 +19,8 @@
 using namespace TortoisebotWaypoints;
 using Point = geometry_msgs::msg::Point;
 using WaypointAction = tortoisebot_waypoints::action::WaypointAction;
-using WaypointActionResultFuture = std::shared_future<
-    TortoisebotActionClient::GoalHandleWaypointAction::SharedPtr>;
+using WaypointActionWrappedResultFuture = std::shared_future<
+    TortoisebotActionClient::GoalHandleWaypointAction::WrappedResult>;
 
 // Helper functions
 
@@ -82,13 +82,13 @@ void TortoisebotActionServerTests::TearDownTestSuite() { rclcpp::shutdown(); }
 void TortoisebotActionServerTests::SetUp() {
   action_server_ = std::make_shared<TortoisebotActionServer>();
   odom_listener_ = std::make_shared<OdomListener>();
+  action_client_ = std::make_shared<TortoisebotActionClient>();
 
   executor_ = std::make_shared<rclcpp::executors::SingleThreadedExecutor>();
   executor_->add_node(action_server_);
   executor_->add_node(odom_listener_);
+  executor_->add_node(action_client_);
   executor_thread_ = std::thread([&]() { executor_->spin(); });
-
-  action_client_ = std::make_shared<TortoisebotActionClient>();
 }
 
 void TortoisebotActionServerTests::TearDown() {
@@ -107,14 +107,17 @@ TEST_F(TortoisebotActionServerTests, TestAction) {
     std::this_thread::sleep_for(std::chrono::milliseconds{100});
   }
 
-  WaypointAction::Result::SharedPtr action_result{
+  std::optional<WaypointActionWrappedResultFuture> result_future{
       action_client_->send_goal(goal)};
+  ASSERT_TRUE(result_future.has_value())
+      << "Action request rejected by server.";
+
+  const auto result{result_future.value().get()};
+  ASSERT_TRUE(result.result->success)
+      << "Action failed to execute successfully.";
 
   yaw_ = odom_listener_->getYaw();
   position_ = odom_listener_->getPosition();
-
-  ASSERT_TRUE(action_result && action_result->success)
-      << "Action failed to execute successfully.";
 
   const auto error_position{
       compErrorPosition(goal.position, position_.value())};
