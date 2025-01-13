@@ -12,14 +12,14 @@ colcon test --packages-select tortoisebot_waypoints --event-handler=console_dire
 
 This should pass. If it fails the first time (because Gazebo fails to launch correctly), simply run the test again.
 
-2. To change the goal to an unreachable pose, replace the arguments in the TortoisebotActionServerTests::goal initialization inside `test/tortoisebot_action_server_test.cpp` (line 89):
+2. To change the goal to an unreachable pose, replace the arguments in the TortoisebotActionServerTests::goal initialization inside `test/tortoisebot_action_server_test.cpp` (line 64):
 
 ```
 sed -i 's/g\.position\.y = 0\.3/g\.position\.y=-3\.0/g' ~/ros2_ws/src/tortoisebot_waypoints/test/tortoisebot_action_server_test.cpp
 # repeat step 1 here
 ```
 
-This time the test should fail after the timeout of 50s elapses.
+This time the test should fail. The test continuously monitors the action and fails if neither the position error nor the yaw error improves within 10s.
 
 3. To launch only the tests without the simulation launching automatically:
 
