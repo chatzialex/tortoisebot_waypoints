@@ -1,7 +1,8 @@
 import launch
 import launch_testing.markers
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription
+from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration
 from ament_index_python.packages import get_package_share_directory, get_package_prefix
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 import unittest
@@ -11,6 +12,13 @@ from subprocess import check_output, CalledProcessError
 
 
 def generate_test_description():
+  headless = LaunchConfiguration('headless')
+  headless_arg = launch.actions.DeclareLaunchArgument(
+    name='headless',
+    default_value='false',
+    description='Enable headless mode for Gazebo'
+  )
+
   simulation_launch_file = os.path.join(
     get_package_share_directory('tortoisebot_bringup'),
     'launch',
@@ -34,6 +42,7 @@ def generate_test_description():
   )
 
   return LaunchDescription([
+    headless_arg,
     simulation_launch_action,
     launch.actions.TimerAction(
         period=10.0, actions=[launch_testing.actions.ReadyToTest()]
