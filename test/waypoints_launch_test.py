@@ -26,7 +26,8 @@ def generate_test_description():
   )
   simulation_launch_action = IncludeLaunchDescription(
     PythonLaunchDescriptionSource(simulation_launch_file),
-    launch_arguments={'use_sim_time': 'True'}.items()
+    launch_arguments={'use_sim_time': 'True',
+                      'headless': headless, 'start_rviz': 'False'}.items()
   )
 
   gtest_file = os.path.join(
